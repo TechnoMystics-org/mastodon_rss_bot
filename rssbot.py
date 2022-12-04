@@ -109,7 +109,10 @@ for feed in feed_list:
         if e_dt > lr_dt:
             lrgr_entry_count += 1
             print("New Entry: %s" % (entry['title']))
-            new_entries.append([entry['title'], entry['link']])
+            if entry['link']:
+                new_entries.append([entry['title'], entry['link']])
+            elif entry['guid']:
+                new_entries.append([entry['title'], entry['guid']])
 ###############################
 
 #######################
@@ -129,6 +132,7 @@ if len(new_entries) > 0:
     host_instance = tokendict["host_instance"]
     botname = tokendict["botname"]
     print("host instance is", host_instance)
+    print("POSTING AS %s" %(botname))
 
     # we need this to use pythons Mastodon.py package
     mastodon = Mastodon(
@@ -151,7 +155,6 @@ if len(new_entries) > 0:
         toottxt = "%s \n%s" % (feed_title, feed_link)
         
         # some hashtags that stay constant
-        botname="rssbot"
         hashtag1 = "#" + botname
         hashtagcontent = "#test"
 
