@@ -2,8 +2,9 @@
 A mastodon rss bot
 
 ## AUTHOR 
- RSSBOT by @mpoletiek
+ by @mpoletiek
  https://enlightened.army/@mpoletiek
+ https://github.com/mpoletiek
 
 ## CREDITS 
  - https://github.com/hanscees/mastodon-bot
