@@ -10,9 +10,9 @@ A mastodon rss bot
 
 ## RSSBOT
  RSS Bot for Enlightened.Army a Mastodon community
- - Official Site: 
- - Official RSS List: 
- - https://enlightened.army/@rssbot
+ - Official Site: https://github.com/mpoletiek/mastodon_rss_bot
+ - Official RSS List: https://github.com/mpoletiek/mastodon_rss_bot/blob/main/rss_list.csv
+ - Official Feed: https://enlightened.army/@rssbot
 
 ## DEPENDENCIES
 ```
