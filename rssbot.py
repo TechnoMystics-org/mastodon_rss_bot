@@ -120,7 +120,7 @@ for feed in feed_list:
                 e_dt = parser.parse(entry['date'])
             except:
                 e_dt = parser.parse(entry['pubDate'])
-        print("Entry Date: %s" % (e_dt))
+        # print("Entry Date: %s" % (e_dt))
         # entry is newer than last run
         # First make sure entry isn't in the future
         if e_dt.timestamp() < parser.parse(now_str).timestamp():
