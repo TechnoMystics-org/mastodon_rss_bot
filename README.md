@@ -37,4 +37,4 @@ tokens are storen in `tokenlib_public.py`
 ## NOTES 
  This script depends on 2 files
  1. `rss_list.csv` is a list of rss feeds, one on each line
- 2. `rssbot_last_run.txt` is a file the bot uses to keep track of RSS updates
+ 2. `rssbot_last_run.txt` is a file the bot uses to keep track of RSS updates. The bot will create the file if it doesn't exist.
