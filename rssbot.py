@@ -101,7 +101,10 @@ for feed in feed_list:
 
     # foreach entry, see if it's newer than last run
     for entry in d['entries']:
-        e_dt = parser.parse(entry['published'])
+        try:
+            e_dt = parser.parse(entry['published'])
+        except:
+            e_dt = parser.parse(entry['date'])
         # entry is newer than last run
         if e_dt > lr_dt:
             lrgr_entry_count += 1
