@@ -4,12 +4,13 @@ A mastodon rss bot
 ## AUTHOR 
  RSSBOT by @mpoletiek
  https://enlightened.army/@mpoletiek
+
 ## CREDITS 
  - https://github.com/hanscees/mastodon-bot
 
 ## RSSBOT
- RSS Bot for Enlightened.Army a Mastodon community
- - Official Site: 
+ RSS Bot for Mastodon communities
+ - Official Site: https://github.com/mpoletiek/mastodon_rss_bot
  - Official RSS List: 
  - https://enlightened.army/@rssbot
 
@@ -31,3 +32,5 @@ Edit run.sh to adjust sleep to increase or decrease interval.
 ## MASTODON AUTH
 as you can probably guess:
 tokens are storen in `tokenlib_public.py`
+### See example `tokenlib_public_example.py`
+Modify and cp to `tokenlib_public.py`
