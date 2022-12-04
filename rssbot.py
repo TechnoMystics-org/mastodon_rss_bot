@@ -45,11 +45,22 @@ from dateutil import parser
 # 2. rssbot_last_run.txt is a file the bot uses to keep track of RSS updates
 ###########
 
+#####################
+## SETUP VARIABLES ##
+#####################
+# botname is set in tokenlib_public.py
+LOCAL_TIMEZONE="CST"
+last_run_path="./rssbot_last_run.txt"
+rss_feed_path="./rss_list.csv"
+time_format_code = '%a, %d %b %Y %X'
+now_str = datetime.now().strftime(time_format_code)
+# Add local timezone to now_str
+now_str += " %s" % (LOCAL_TIMEZONE)
+hashtagcontent = "#biznews"
+
 ##################
 ## GET LAST RUN ##
 ##################
-LOCAL_TIMEZONE="CST"
-last_run_path="./rssbot_last_run.txt"
 try:
     with open(last_run_path, "r") as myfile:
         data = myfile.read()
@@ -81,7 +92,7 @@ lrgr_entry_count=0
 #######################
 # reading the CSV file
 feed_list = []
-with open('./rss_list.csv', mode ='r')as file:
+with open(rss_feed_path, mode ='r')as file:
   csvFile = csv.reader(file)
   for lines in csvFile:
         print(lines)
@@ -101,18 +112,26 @@ for feed in feed_list:
 
     # foreach entry, see if it's newer than last run
     for entry in d['entries']:
+        # check multiple values for published date
         try:
             e_dt = parser.parse(entry['published'])
         except:
-            e_dt = parser.parse(entry['date'])
+            try:
+                e_dt = parser.parse(entry['date'])
+            except:
+                e_dt = parser.parse(entry['pubDate'])
+        print("Entry Date: %s" % (e_dt))
         # entry is newer than last run
-        if e_dt > lr_dt:
-            lrgr_entry_count += 1
-            print("New Entry: %s" % (entry['title']))
-            if entry['link']:
-                new_entries.append([entry['title'], entry['link']])
-            elif entry['guid']:
-                new_entries.append([entry['title'], entry['guid']])
+        # First make sure entry isn't in the future
+        if e_dt.timestamp() < parser.parse(now_str).timestamp():
+            if e_dt.timestamp() > lr_dt.timestamp():
+                lrgr_entry_count += 1
+                print("New Entry: %s" % (entry['title']))
+                # Check multiple values for entry link
+                if entry['link']:
+                    new_entries.append([entry['title'], entry['link']])
+                elif entry['guid']:
+                    new_entries.append([entry['title'], entry['guid']])
 ###############################
 
 #######################
@@ -154,9 +173,8 @@ if len(new_entries) > 0:
         feed_link = toot[1]
         toottxt = "%s \n%s" % (feed_title, feed_link)
         
-        # some hashtags that stay constant
+        # prepend botname to hashtags
         hashtag1 = "#" + botname
-        hashtagcontent = "#test"
 
         #hashtags and tweettext together
         post_text = str(toottxt) + "\n" + "posted by " + hashtag1 + " " + hashtagcontent + "\n" # creating post text
@@ -177,13 +195,15 @@ time_format_code = '%a, %d %b %Y %X'
 # datetime to str
 now = datetime.now()
 now_str = now.strftime(time_format_code)
-print(now_str)
+# Add local timezone to now_str
+now_str += " %s" % (LOCAL_TIMEZONE)
+print("Now string: %s" % (now_str))
 
 #save value if we found new entries
 if lrgr_entry_count > 0:
     print("%s New Entries Found" % (lrgr_entry_count))
     with open(last_run_path, "w") as myfile:
-        myfile.write("%s %s" % (now_str,LOCAL_TIMEZONE))
+        myfile.write("%s" % (now_str))
 else:
     print("No New Entries")
 ######################
