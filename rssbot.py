@@ -57,15 +57,11 @@ except:
     #######################
     ## SET LAST RUN DATE ##
     #######################
-    time_format_code = '%a, %d %b %Y %X '
+    time_format_code = '%a, %d %b %Y %X'
     # datetime to str
     now = datetime.now()
     now_str = now.strftime(time_format_code)
     print(now_str)
-
-    # str to datetime
-    now_dt = parser.parse(now_str)
-    print("DateTime: %s" % (now_dt))
 
     #save value if we found new entries
     with open(last_run_path, "w") as myfile:
@@ -104,11 +100,8 @@ for feed in feed_list:
     print ("Found %s entries in RSS Feed: " % (len(d['entries'])))
 
     # foreach entry, see if it's newer than last run
-    #feed_time_format = "%a, %d %b %Y %X %Z"
     for entry in d['entries']:
-        #e_dt = datetime.strptime(entry['published'],feed_time_format)
         e_dt = parser.parse(entry['published'])
-        #print("entry_dt: %s" % (e_dt))
         # entry is newer than last run
         if e_dt > lr_dt:
             lrgr_entry_count += 1
@@ -129,7 +122,6 @@ if len(new_entries) > 0:
     ## now lets get the tokens for our bot
     ## we choose pixey for now
     tokendict=tokenlib_public.getmytokenfor("enlightened.army")
-    print("tokendict is ", tokendict)
     pa_token = tokendict["pa_token"]
     host_instance = tokendict["host_instance"]
     botname = tokendict["botname"]
@@ -139,7 +131,6 @@ if len(new_entries) > 0:
     mastodon = Mastodon(
         access_token = pa_token,
         api_base_url = host_instance
-        # api_base_url = 'https://pixelfed.tokyo/'
     )
 
     ######################
@@ -169,7 +160,7 @@ if len(new_entries) > 0:
         ###############
         ## POST TOOT ##
         ###############
-        #mastodon.status_post(post_text)
+        mastodon.status_post(post_text)
         ###############
 ########################
 
@@ -181,10 +172,6 @@ time_format_code = '%a, %d %b %Y %X'
 now = datetime.now()
 now_str = now.strftime(time_format_code)
 print(now_str)
-
-# str to datetime
-now_dt = parser.parse(now_str)
-print("DateTime: %s" % (now_dt))
 
 #save value if we found new entries
 if lrgr_entry_count > 0:
