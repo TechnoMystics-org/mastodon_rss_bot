@@ -35,9 +35,10 @@ This is	where you set your bot name.
 
 ## RUNNING
 `./run.sh`
-Edit run.sh to adjust sleep to increase or decrease interval.
 Default is set to run every minute.
 New posts are collected and tooted out every 20 seconds.
+
+Edit run.sh to adjust sleep to increase or decrease interval.
 
 ## NOTES 
  This script depends on 2 files
