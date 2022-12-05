@@ -95,7 +95,7 @@ feed_list = []
 with open(rss_feed_path, mode ='r')as file:
   csvFile = csv.reader(file)
   for lines in csvFile:
-        print(lines)
+        #print(lines)
         feed_list.append(lines)
 #######################
 
