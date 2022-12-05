@@ -1,5 +1,5 @@
 # rssbot.py
-A mastodon rss bot
+A mastodon rss bot.
 
 ## AUTHOR 
  by @mpoletiek
@@ -7,10 +7,11 @@ A mastodon rss bot
  https://github.com/mpoletiek
 
 ## CREDITS 
+ Major inspiration to be found below.
  - https://github.com/hanscees/mastodon-bot
 
 ## RSSBOT
- RSS Bot for Enlightened.Army a Mastodon community
+ RSS Bot for Mastodon.
  - Official Site: https://github.com/mpoletiek/mastodon_rss_bot
  - Official RSS List: https://github.com/mpoletiek/mastodon_rss_bot/blob/main/rss_list.csv
  - Official Feed: https://enlightened.army/@rssbot
@@ -26,13 +27,17 @@ import hcmastodonlib
 import tokenlib_public
 ```
 
-## RUNNING
-`./run.sh`
-Edit run.sh to adjust sleep to increase or decrease interval.
-
 ## MASTODON AUTH
 as you can probably guess:
 tokens are storen in `tokenlib_public.py`
+You will need to create	this file first. Example can be	found in `tokenlib_public_example.py`
+This is	where you set your bot name.
+
+## RUNNING
+`./run.sh`
+Edit run.sh to adjust sleep to increase or decrease interval.
+Default is set to run every minute.
+New posts are collected and tooted out every 20 seconds.
 
 ## NOTES 
  This script depends on 2 files
