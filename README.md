@@ -1,5 +1,9 @@
-# rssbot.py
-A mastodon rss bot.
+# mastodon_rss_bot
+A mastodon rss reader & toot bot.
+
+Very simply, a script that reads a list of RSS feeds and toots anything new!
+
+We measure new by the last time we posted.
 
 ## AUTHOR 
  by @mpoletiek
