@@ -2,13 +2,14 @@
 ##################
 ## DEPENDENCIES ##
 ##################
-import requests, datetime, time
-import os, re, json, csv
-import feedparser
+import time, os, re, json, csv
+
 from mastodon import Mastodon
 from datetime import datetime
-import tokenlib_public
 from dateutil import parser
+
+import feedparser
+import tokenlib_public
 ##################
 
 ############
