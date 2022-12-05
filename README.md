@@ -7,8 +7,8 @@ We measure "new" by the last time we posted.
 
 ## AUTHOR 
  by @mpoletiek
- https://enlightened.army/@mpoletiek
- https://github.com/mpoletiek
+ - https://enlightened.army/@mpoletiek
+ - https://github.com/mpoletiek
 
 ## CREDITS 
  Major inspiration to be found below.
