@@ -50,13 +50,18 @@ import tokenlib_public
 ## SETUP VARIABLES ##
 #####################
 # botname is set in tokenlib_public.py
-LOCAL_TIMEZONE="CST"
+LOCAL_TIMEZONE=""
 last_run_path="./rssbot_last_run.txt"
 rss_feed_path="./rss_list.csv"
 time_format_code = '%a, %d %b %Y %X'
-now_str = datetime.now().strftime(time_format_code)
+now_dt = datetime.now()
+now_str = now_dt.strftime(time_format_code)
+now_tim = time.mktime(now_dt.timetuple())
+
 # Add local timezone to now_str
 now_str += " %s" % (LOCAL_TIMEZONE)
+
+# Hashtags for toots, seperate by spaces
 hashtagcontent = "#biznews"
 
 ##################
@@ -69,12 +74,6 @@ except:
     #######################
     ## SET LAST RUN DATE ##
     #######################
-    time_format_code = '%a, %d %b %Y %X'
-    # datetime to str
-    now = datetime.now()
-    now_str = now.strftime(time_format_code)
-    print(now_str)
-
     #save value if we found new entries
     with open(last_run_path, "w") as myfile:
         myfile.write("%s %s" % (now_str, LOCAL_TIMEZONE))
@@ -84,6 +83,8 @@ except:
         data = myfile.read()
 
 lr_dt = parser.parse(data)
+lr_tim = time.mktime(lr_dt.timetuple())
+
 print("LAST RUN: %s" % (lr_dt))
 lrgr_entry_count=0
 ################
@@ -116,16 +117,19 @@ for feed in feed_list:
         # check multiple values for published date
         try:
             e_dt = parser.parse(entry['published'])
+            e_tim = time.mktime(e_dt.timetuple())
         except:
             try:
                 e_dt = parser.parse(entry['date'])
+                e_tim = time.mktime(e_dt.timetuple())
             except:
                 e_dt = parser.parse(entry['pubDate'])
+                e_tim = time.mktime(e_dt.timetuple())
         # print("Entry Date: %s" % (e_dt))
         # entry is newer than last run
         # First make sure entry isn't in the future
-        if e_dt.timestamp() < parser.parse(now_str).timestamp():
-            if e_dt.timestamp() > lr_dt.timestamp():
+        if e_tim < now_tim:
+            if e_tim > lr_tim:
                 lrgr_entry_count += 1
                 print("New Entry: %s" % (entry['title']))
                 # Check multiple values for entry link
@@ -192,12 +196,6 @@ if len(new_entries) > 0:
 #######################
 ## SET LAST RUN DATE ##
 #######################
-time_format_code = '%a, %d %b %Y %X'
-# datetime to str
-now = datetime.now()
-now_str = now.strftime(time_format_code)
-# Add local timezone to now_str
-now_str += " %s" % (LOCAL_TIMEZONE)
 print("Now string: %s" % (now_str))
 
 #save value if we found new entries
