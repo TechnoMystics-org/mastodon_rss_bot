@@ -125,11 +125,11 @@ for feed in feed_list:
             except:
                 e_dt = parser.parse(entry['pubDate'])
                 e_tim = time.mktime(e_dt.timetuple())
-        # print("Entry Date: %s" % (e_dt))
-        # entry is newer than last run
+        
+        # Check if entry is new!
         # First make sure entry isn't in the future
-        if e_tim < now_tim:
-            if e_tim > lr_tim:
+        if e_tim < now_tim: # Entry time is smaller than now time.
+            if e_tim > lr_tim: # Entry time is larger than last run time.
                 lrgr_entry_count += 1
                 print("New Entry: %s" % (entry['title']))
                 # Check multiple values for entry link
