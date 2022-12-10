@@ -2,7 +2,7 @@
 ##################
 ## DEPENDENCIES ##
 ##################
-import time, os, re, json, csv
+import time, os, re, json, csv, requests
 
 from mastodon import Mastodon
 from datetime import datetime
@@ -52,7 +52,7 @@ import tokenlib_public
 # botname is set in tokenlib_public.py
 LOCAL_TIMEZONE=""
 last_run_path="./rssbot_last_run.txt"
-rss_feed_path="./rss_list.csv"
+#rss_feed_path="./rss_list.csv"
 time_format_code = '%a, %d %b %Y %X'
 now_dt = datetime.now()
 now_str = now_dt.strftime(time_format_code)
@@ -62,7 +62,20 @@ now_tim = time.mktime(now_dt.timetuple())
 now_str += " %s" % (LOCAL_TIMEZONE)
 
 # Hashtags for toots, seperate by spaces
-hashtagcontent = "#biznews"
+hashtagcontent = "#worldnews"
+
+
+## Testing URL Hosted CSV
+csv_url="https://raw.githubusercontent.com/TechnoMystics-org/ea_rss_bot_feeds/main/worldnews_rss.csv"
+r = requests.get(csv_url, stream = True)
+temp_csv_path="./temp_csv"
+with open(temp_csv_path,"wb") as tempcsv:
+    for chunk in r.iter_content(chunk_size=1024):
+  
+         # writing one chunk at a time to pdf file
+         if chunk:
+             tempcsv.write(chunk)
+
 
 ##################
 ## GET LAST RUN ##
@@ -93,8 +106,9 @@ lrgr_entry_count=0
 ## GET RSS FEED LIST ##
 #######################
 # reading the CSV file
+target_feed = temp_csv_path
 feed_list = []
-with open(rss_feed_path, mode ='r')as file:
+with open(target_feed, mode ='r')as file:
   csvFile = csv.reader(file)
   for lines in csvFile:
         #print(lines)
