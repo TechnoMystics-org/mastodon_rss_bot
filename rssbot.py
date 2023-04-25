@@ -1,27 +1,10 @@
 #!/usr/bin/python3
-##################
-## DEPENDENCIES ##
-##################
-import time, os, re, json, csv, requests
 
-from mastodon import Mastodon
-from datetime import datetime
-from dateutil import parser
+# Mastodon Bot
+# RSS Reader Poster
 
-import feedparser
-import tokenlib_public
-##################
-
-############
-## AUTHOR ##
-############
 # RSSBOT by @mpoletiek
 # https://enlightened.army/@mpoletiek
-############
-
-#############
-## CREDITS ##
-#############
 # 1: https://github.com/hanscees/mastodon-bot
 #############
 
@@ -37,74 +20,74 @@ import tokenlib_public
 ###########
 ## NOTES ##
 ###########
-## as you can probably guess:
-# tokens are storen in tokenlib_public
-# functions to post to mastodon are in hcmastodonlib
+# As you can probably guess tokens are stored in tokenlib_public.
+# We use Mastodon.py to interact with a Mastodon instance.
 #
 # This script depends on 2 files
-# 1. rss_list.csv is a list of rss feeds, one on each line
-# 2. rssbot_last_run.txt is a file the bot uses to keep track of RSS updates
+# 1. Source of RSS feeds. This comes from Github for now.
+# 2. rssbot_last_run.txt: Do Not Touch. Modify at your own risk. A simple text file for keeping track of time.
 ###########
+
+##################
+## DEPENDENCIES ##
+##################
+import time, os, re, json, csv, requests
+
+from mastodon import Mastodon
+from datetime import datetime
+from dateutil import parser
+
+import feedparser
+import tokenlib_public
+##################
 
 #####################
 ## SETUP VARIABLES ##
 #####################
 # botname is set in tokenlib_public.py
-LOCAL_TIMEZONE=""
-last_run_path="./rssbot_last_run.txt"
-#rss_feed_path="./rss_list.csv"
-time_format_code = '%a, %d %b %Y %X'
+csv_url="https://raw.githubusercontent.com/TechnoMystics-org/ea_rss_bot_feeds/main/technews_rss.csv"
+temp_csv_path="./temp.csv"
+last_run_path="./rssbot_lastrun.txt"
+time_format_code = '%Y-%m-%d:%H:%M'
 now_dt = datetime.now()
 now_str = now_dt.strftime(time_format_code)
-now_tim = time.mktime(now_dt.timetuple())
-
-# Add local timezone to now_str
-now_str += " %s" % (LOCAL_TIMEZONE)
+print("Now: "+now_str)
 
 # Hashtags for toots, seperate by spaces
-hashtagcontent = "#worldnews"
-
+hashtagcontent = "#technews"
 
 ## Testing URL Hosted CSV
-csv_url="https://raw.githubusercontent.com/TechnoMystics-org/ea_rss_bot_feeds/main/worldnews_rss.csv"
 r = requests.get(csv_url, stream = True)
-temp_csv_path="./temp_csv"
+# write the returned chunks to file
 with open(temp_csv_path,"wb") as tempcsv:
     for chunk in r.iter_content(chunk_size=1024):
-  
-         # writing one chunk at a time to pdf file
          if chunk:
              tempcsv.write(chunk)
 
-
-##################
 ## GET LAST RUN ##
-##################
+# Get the last time we ran this script
 try:
     with open(last_run_path, "r") as myfile:
         data = myfile.read()
 except:
-    #######################
     ## SET LAST RUN DATE ##
-    #######################
     #save value if we found new entries
     with open(last_run_path, "w") as myfile:
-        myfile.write("%s %s" % (now_str, LOCAL_TIMEZONE))
+        myfile.write("%s" % (now_str))
     print("Wrote %s" % (last_run_path))
     # re-open file
     with open(last_run_path, "r") as myfile:
         data = myfile.read()
 
-lr_dt = parser.parse(data)
-lr_tim = time.mktime(lr_dt.timetuple())
+# Normalize date
+lr_dt = datetime.strptime(data,time_format_code)
+lr_str = lr_dt.strftime(time_format_code)
+print("Last Run: %s" % (lr_str))
 
-print("LAST RUN: %s" % (lr_dt))
 lrgr_entry_count=0
 ################
 
-#######################
 ## GET RSS FEED LIST ##
-#######################
 # reading the CSV file
 target_feed = temp_csv_path
 feed_list = []
@@ -115,50 +98,65 @@ with open(target_feed, mode ='r')as file:
         feed_list.append(lines)
 #######################
 
+# Helper function for discovering a feed's published date field
+def getPubDate(entry):
+    known_values = ['published', 'date','PubDate','updated','pubDate']
+    this_pubdate = None
+    for field in known_values:
+        try: 
+            this_pubdate = entry[field]
+        except:
+            pass
 
-################################
+    if this_pubdate == None:
+        print("Couldn't find entry date")    
+
+    return this_pubdate
+
 ## GET RSS FEED & NEW ENTRIES ##
-################################
 # Get feed, count entries
 new_entries = []
 for feed in feed_list:
+
     print("Feed: %s" % (feed))
-    d = feedparser.parse(feed[0])
-    print ("Found %s entries in RSS Feed: " % (len(d['entries'])))
+    try:
+        d = feedparser.parse(feed[0])
+    except:
+        print("Failed to parse RSS feed: %s" %(feed))
+
+    print ("Found %s entries in RSS Feed." % (len(d['entries'])))
 
     # foreach entry, see if it's newer than last run
     for entry in d['entries']:
         # check multiple values for published date
-        try:
-            e_dt = parser.parse(entry['published'])
-            e_tim = time.mktime(e_dt.timetuple())
-        except:
-            try:
-                e_dt = parser.parse(entry['date'])
-                e_tim = time.mktime(e_dt.timetuple())
-            except:
-                e_dt = parser.parse(entry['pubDate'])
-                e_tim = time.mktime(e_dt.timetuple())
-        
+        entry_dt_str = getPubDate(entry)
+        entry_dt = None
+        # Did we find an entry date?
+        if entry_dt_str != None:
+            entry_dt = parser.parse(entry_dt_str)
+            entry_dt_str = entry_dt.strftime(time_format_code)
+        # Normalize date
+        new_dt = datetime.strptime(entry_dt_str,time_format_code)
+
         # Check if entry is new!
         # First make sure entry isn't in the future
-        if e_tim < now_tim: # Entry time is smaller than now time.
-            if e_tim > lr_tim: # Entry time is larger than last run time.
+        # Entry time is smaller than now time.
+        # This means it was posted in the past.
+        # We don't accept posts from the "future".
+        if new_dt < now_dt: 
+            if new_dt > lr_dt: # Entry time is larger than last run time.
                 lrgr_entry_count += 1
                 print("New Entry: %s" % (entry['title']))
                 # Check multiple values for entry link
                 if entry['link']:
-                    new_entries.append([entry['title'], entry['link']])
+                    new_entries.append([entry['title'], entry['link'], entry_dt_str])
                 elif entry['guid']:
-                    new_entries.append([entry['title'], entry['guid']])
+                    new_entries.append([entry['title'], entry['guid'], entry_dt_str])
 ###############################
 
-#######################
 ## NEW ENTRIES FOUND ##
-#######################
 # If we find new entries, we'll attempt to post them
 if len(new_entries) > 0:
-
     ####################################
     ## SETTING UP MASTODON CONNECTION ##
     ## modify tokenlib_pub.py for Auth #
@@ -178,10 +176,10 @@ if len(new_entries) > 0:
         api_base_url = host_instance
     )
 
-    ######################
     ## POST NEW ENTRIES ##
-    ######################
     toots_attempted_count=0
+    # collect array of pubDates
+    new_pubdates = []
     for toot in new_entries:
         toots_attempted_count += 1
         print("Posting New Toot %s/%s in 20 seconds" % (toots_attempted_count, len(new_entries)))
@@ -190,33 +188,30 @@ if len(new_entries) > 0:
         # the text to toot
         feed_title = toot[0]
         feed_link = toot[1]
+        new_pubdates.append(toot[2])
         toottxt = "%s \n%s" % (feed_title, feed_link)
         
         # prepend botname to hashtags
         hashtag1 = "#" + botname
 
-        #hashtags and tweettext together
+        #hashtags and toottext together
         post_text = str(toottxt) + "\n" + "posted by " + hashtag1 + " " + hashtagcontent + "\n" # creating post text
         post_text = post_text[0:499]
         print("%s\n" % (post_text))
 
-        ###############
         ## POST TOOT ##
-        ###############
-        mastodon.status_post(post_text)
-        ###############
-########################
+        try: 
+            mastodon.status_post(post_text)
+        except:
+            print("Failed to post to Mastodon")
 
-#######################
-## SET LAST RUN DATE ##
-#######################
-print("Now string: %s" % (now_str))
+    # sort the pubdates
+    new_pubdates.sort(reverse=True)
+    print("Latest post date: %s" % (new_pubdates[0]))
 
-#save value if we found new entries
-if lrgr_entry_count > 0:
-    print("%s New Entries Found" % (lrgr_entry_count))
     with open(last_run_path, "w") as myfile:
-        myfile.write("%s" % (now_str))
+        myfile.write("%s" % (new_pubdates[0]))
+
 else:
     print("No New Entries")
 ######################
