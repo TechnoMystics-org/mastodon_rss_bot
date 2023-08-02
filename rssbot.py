@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/home/mpoletiek/Devspace/mastodon_rss_bot/venv/bin/python3
 
 # Mastodon Bot
 # RSS Reader Poster
@@ -31,7 +31,7 @@
 ##################
 ## DEPENDENCIES ##
 ##################
-import time, os, re, json, csv, requests
+import time, os, re, json, csv, requests, redis, pickle, argparse
 
 from mastodon import Mastodon
 from datetime import datetime
@@ -45,16 +45,49 @@ import tokenlib_public
 ## SETUP VARIABLES ##
 #####################
 # botname is set in tokenlib_public.py
-csv_url="https://raw.githubusercontent.com/TechnoMystics-org/ea_rss_bot_feeds/main/technews_rss.csv"
+csv_url="https://raw.githubusercontent.com/TechnoMystics-org/ea_rss_bot_feeds/main/enews_rss.csv"
 temp_csv_path="./temp.csv"
-last_run_path="./rssbot_lastrun.txt"
 time_format_code = '%Y-%m-%d:%H:%M'
 now_dt = datetime.now()
 now_str = now_dt.strftime(time_format_code)
 print("Now: "+now_str)
+# Mastodon Variables
+tokendict=tokenlib_public.getmytokenfor("enlightened.army")
+pa_token = tokendict["pa_token"]
+host_instance = tokendict["host_instance"]
+botname = tokendict["botname"]
+# Redis Variables
+redis_password = tokenlib_public.getRedisPassword()
+r_target = 'mastodon_rstore_%s' % botname
+r_store_template = {
+    "entries":[],
+    "last_run": now_str
+}
+stor = {}
 
-# Hashtags for toots, seperate by spaces
-hashtagcontent = "#technews"
+# Extra hashtags for toots, seperate by spaces
+#hashtagcontent = "#rss #bot"
+
+# Parse for initialize flag
+args_parser = argparse.ArgumentParser(description="Mastodon RSS Bot")
+args_parser.add_argument('-i', '--initialize', action='store_true', help='Initialize Redis Store and scan RSS feeds for initial news set.')
+args = args_parser.parse_args()
+
+def initialize(r):
+    if args.initialize == True:
+        print("Initializing Redis Store.")
+        r.delete(r_target)
+
+def is_new_entry(stor,entry_link):
+    is_new = True
+    if len(stor['entries']) > 0:
+        for stor_entry in stor['entries']:
+            #print(stor_entry[1])
+            if stor_entry[1] == entry_link:
+                #print("old entry")
+                is_new = False
+    
+    return is_new
 
 ## Testing URL Hosted CSV
 r = requests.get(csv_url, stream = True)
@@ -64,28 +97,6 @@ with open(temp_csv_path,"wb") as tempcsv:
          if chunk:
              tempcsv.write(chunk)
 
-## GET LAST RUN ##
-# Get the last time we ran this script
-try:
-    with open(last_run_path, "r") as myfile:
-        data = myfile.read()
-except:
-    ## SET LAST RUN DATE ##
-    #save value if we found new entries
-    with open(last_run_path, "w") as myfile:
-        myfile.write("%s" % (now_str))
-    print("Wrote %s" % (last_run_path))
-    # re-open file
-    with open(last_run_path, "r") as myfile:
-        data = myfile.read()
-
-# Normalize date
-lr_dt = datetime.strptime(data,time_format_code)
-lr_str = lr_dt.strftime(time_format_code)
-print("Last Run: %s" % (lr_str))
-
-lrgr_entry_count=0
-################
 
 ## GET RSS FEED LIST ##
 # reading the CSV file
@@ -98,24 +109,29 @@ with open(target_feed, mode ='r')as file:
         feed_list.append(lines)
 #######################
 
-# Helper function for discovering a feed's published date field
-def getPubDate(entry):
-    known_values = ['published', 'date','PubDate','updated','pubDate']
-    this_pubdate = None
-    for field in known_values:
-        try: 
-            this_pubdate = entry[field]
-        except:
-            pass
-
-    if this_pubdate == None:
-        print("Couldn't find entry date")    
-
-    return this_pubdate
+## CONNECT TO REDIS ##
+######################
+r = redis.Redis(host='localhost',
+                port=6379, 
+                password=redis_password)
+initialize(r)
+p_stor = r.get(r_target)
+if p_stor:
+    print("Got current Redis store.")
+    #print(p_stor)
+    stor = pickle.loads(p_stor)
+    #print(json.dumps(stor))
+else:
+    print("Creating new store.")
+    p_template = pickle.dumps(r_store_template)
+    r.set(r_target,p_template)
+    stor = pickle.loads(r.get(r_target))
+######################
 
 ## GET RSS FEED & NEW ENTRIES ##
 # Get feed, count entries
 new_entries = []
+new_entry_count = 0
 for feed in feed_list:
 
     print("Feed: %s" % (feed))
@@ -124,49 +140,40 @@ for feed in feed_list:
     except:
         print("Failed to parse RSS feed: %s" %(feed))
 
-    print ("Found %s entries in RSS Feed." % (len(d['entries'])))
+    #print ("Found %s entries in RSS Feed." % (len(d['entries'])))
 
     # foreach entry, see if it's newer than last run
     for entry in d['entries']:
-        # check multiple values for published date
-        entry_dt_str = getPubDate(entry)
-        entry_dt = None
-        # Did we find an entry date?
-        if entry_dt_str != None:
-            entry_dt = parser.parse(entry_dt_str)
-            entry_dt_str = entry_dt.strftime(time_format_code)
-        # Normalize date
-        new_dt = datetime.strptime(entry_dt_str,time_format_code)
-
-        # Check if entry is new!
-        # First make sure entry isn't in the future
-        # Entry time is smaller than now time.
-        # This means it was posted in the past.
-        # We don't accept posts from the "future".
-        if new_dt < now_dt: 
-            if new_dt > lr_dt: # Entry time is larger than last run time.
-                lrgr_entry_count += 1
-                print("New Entry: %s" % (entry['title']))
-                # Check multiple values for entry link
-                if entry['link']:
-                    new_entries.append([entry['title'], entry['link'], entry_dt_str])
-                elif entry['guid']:
-                    new_entries.append([entry['title'], entry['guid'], entry_dt_str])
+        #print("New Entry: %s" % (entry['title']))
+        # Check multiple values for entry link
+        if entry['link']:
+            if is_new_entry(stor,entry['link']):
+                new_entries.append([entry['title'], entry['link'], now_str])
+                stor['entries'].append([entry['title'], entry['link'], now_str])
+                new_entry_count += 1
+        elif entry['guid']:
+            if is_new_entry(stor,entry['guid']):
+                new_entries.append([entry['title'], entry['guid'], now_str])
+                stor['entries'].append([entry['title'], entry['guid'], now_str])
+                new_entry_count += 1
+        else:
+            print("Can't interpret entry")
 ###############################
+
+print("%s New Entries" % new_entry_count)
+print("Updating Redis store.")
+p_stor = pickle.dumps(stor)
+r.set(r_target,p_stor)
 
 ## NEW ENTRIES FOUND ##
 # If we find new entries, we'll attempt to post them
-if len(new_entries) > 0:
+if len(new_entries) > 0 and args.initialize == False:
     ####################################
     ## SETTING UP MASTODON CONNECTION ##
     ## modify tokenlib_pub.py for Auth #
     ####################################
     ## now lets get the tokens for our bot
     ## we choose pixey for now
-    tokendict=tokenlib_public.getmytokenfor("enlightened.army")
-    pa_token = tokendict["pa_token"]
-    host_instance = tokendict["host_instance"]
-    botname = tokendict["botname"]
     print("host instance is", host_instance)
     print("POSTING AS %s" %(botname))
 
@@ -205,13 +212,6 @@ if len(new_entries) > 0:
         except:
             print("Failed to post to Mastodon")
 
-    # sort the pubdates
-    new_pubdates.sort(reverse=True)
-    print("Latest post date: %s" % (new_pubdates[0]))
-
-    with open(last_run_path, "w") as myfile:
-        myfile.write("%s" % (new_pubdates[0]))
-
 else:
-    print("No New Entries")
+    print("Nothing to post.")
 ######################

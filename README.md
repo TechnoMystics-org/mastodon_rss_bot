@@ -22,7 +22,7 @@ We measure "new" by the last time we posted.
 
 ## DEPENDENCIES
 ```
-import time, os, re, json, csv
+import time, os, re, json, csv, requests, redis, pickle, argparse
 
 from mastodon import Mastodon
 from datetime import datetime
@@ -38,18 +38,21 @@ tokens are storen in `tokenlib_public.py`
 You will need to create	this file first. Example can be	found in `tokenlib_public_example.py`
 This is	where you set your bot name.
 
+## Redis
+You must have a local Redis server to run this script. The redis DB password is stored in `tokenlib_public.py`. 
+
 ## RUNNING
+First, initialize the Redis DB using
+`./run.sh i`
+
+This will initialize the Redis DB and store the first batch of news. From this point you can run the command normally, which will only post new stories every 1 minute.
+
 `./run.sh`
 
-Default is set to run every minute.
 New posts are collected and tooted out every 20 seconds.
 
 Edit `run.sh` to adjust sleep to increase or decrease interval.
 
-## NOTES 
- This script depends on 2 files
- 1. `rss_list.csv` is a list of rss feeds, one on each line
- 2. `rssbot_last_run.txt` is a file the bot uses to keep track of RSS updates. The bot will create the file if it doesn't exist.
 
 ## Live Examples
 Here are some bots you can follow today.
