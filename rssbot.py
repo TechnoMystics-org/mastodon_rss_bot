@@ -1,4 +1,4 @@
-#!/home/mpoletiek/Devspace/mastodon_rss_bot/venv/bin/python3
+#!/usr/bin/python3
 
 # Mastodon Bot
 # RSS Reader Poster
@@ -43,7 +43,7 @@ import tokenlib_public
 ##################
 
 # Initialize Redis Stor Object
-def initialize(r,args):
+def initialize(r,args,r_target):
     if args.initialize == True:
         print("Initializing Redis Store.")
         r.delete(r_target)
@@ -160,7 +160,7 @@ def redis_connect(r_target, now_str, args):
     r = redis.Redis(host=redis_variables['host'],
                     port=redis_variables['port'], 
                     password=redis_variables['password'])
-    initialize(r, args)
+    initialize(r, args, r_target)
     p_stor = r.get(r_target)
     if p_stor:
         print("Got current Redis store.")
