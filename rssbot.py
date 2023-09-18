@@ -203,7 +203,7 @@ def main():
     r_target = 'mastodon_rstore_%s' % botname
 
     # Extra hashtags for toots, seperate by spaces
-    hashtagcontent = "#rss #bot"
+    hashtagcontent = ""
 
     # Parse CLI Arguments
     args_parser = argparse.ArgumentParser(description="Mastodon RSS Bot")
